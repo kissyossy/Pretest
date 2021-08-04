@@ -5,7 +5,9 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_analytics/observer.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:pretest/model.dart';
 import 'package:vibration/vibration.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,13 +19,23 @@ class MyApp extends StatelessWidget {
   FirebaseAnalytics analytics = FirebaseAnalytics();
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        theme: ThemeData(),
-        home: MyHomePage(),
-        navigatorObservers: [
-          FirebaseAnalyticsObserver(analytics: analytics),
-        ],
-      );
+  Widget build(BuildContext context) => MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (context) => model())
+    ],
+      child: MaterialApp(
+    theme: ThemeData(
+      brightness: Brightness.light,
+    ),
+    darkTheme: ThemeData(
+      brightness: Brightness.dark,
+    ),
+    home: MyHomePage(),
+    navigatorObservers: [
+      FirebaseAnalyticsObserver(analytics: analytics),
+    ],
+    debugShowCheckedModeBanner: false,
+  ));
 }
 
 class MyHomePage extends StatefulWidget {
@@ -37,25 +49,22 @@ class _MyHomePageState extends State<MyHomePage> {
     return GestureDetector(
         onTapDown: generateRipplePointer,
         child: Scaffold(
-            // body: Stack(children: ripplePointerList),
-            body: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('point')
-              .orderBy('time', descending: true)
-              .snapshots(),
-          builder:
-              (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-            if (snapshot.hasData) {
-              print(snapshot.data.docs[0]);
-              double x = snapshot.data.docs[0].get('x');
-              double y = snapshot.data.docs[0].get('y');
-              generateRipplePointer0(x, y);
-              return Stack(children: ripplePointerList);
-            } else {
-              return Container();
-            }
-          },
-        )));
+          // body: Stack(children: ripplePointerList),
+            body: Consumer<model>(
+                  builder: (context, model, _) {
+                    model.getSnapshot();
+                    return Stack(children: model.ripplePointerList);
+                // if (snapshot.hasData) {
+                //   print(snapshot.data.docs[0]);
+                //   double x = snapshot.data.docs[0].get('x');
+                //   double y = snapshot.data.docs[0].get('y');
+                //   generateRipplePointer0(x, y);
+                //   return Stack(children: ripplePointerList);
+                // } else {
+                //   return Container();
+                // }
+              },
+            )));
   }
 
   List<RipplePointer> ripplePointerList = <RipplePointer>[];
@@ -174,35 +183,35 @@ class RipplePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final circleValue = Tween<double>(begin: 10, end: 80) //円のスタート半径と終了半径
         .animate(
-          controller.drive(
-            CurveTween(
-              curve: Curves.easeOutExpo,
-            ),
-          ),
-        )
+      controller.drive(
+        CurveTween(
+          curve: Curves.easeOutExpo,
+        ),
+      ),
+    )
         .value;
     final widthValue = Tween<double>(begin: 20, end: 1)
         .animate(
-          controller.drive(
-            CurveTween(
-              curve: Curves.easeInOut,
-            ),
-          ),
-        )
+      controller.drive(
+        CurveTween(
+          curve: Curves.easeInOut,
+        ),
+      ),
+    )
         .value;
-    final opacityValue = Tween<double>(begin: 1, end: 0)
+    final opacityValue = Tween<double>(begin: .5, end: 0)
         .animate(
-          controller.drive(
-            CurveTween(
-              curve: Curves.easeInOut,
-            ),
-          ),
-        )
+      controller.drive(
+        CurveTween(
+          curve: Curves.easeInOut,
+        ),
+      ),
+    )
         .value;
 
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..color = Colors.blue.withOpacity(opacityValue)
+      ..color = Colors.lightBlue.withOpacity(opacityValue)
       ..strokeWidth = widthValue;
     canvas.drawCircle(offset, circleValue, paint);
   }
